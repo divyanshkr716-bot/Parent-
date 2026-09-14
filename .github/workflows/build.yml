@@ -1,0 +1,56 @@
+name: Build Parent and Child APKs
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.6'
+
+      - name: Build Parent APK
+        working-directory: parent
+        run: |
+          gradle assembleDebug --no-daemon
+
+      - name: Build Child APK
+        working-directory: child
+        run: |
+          gradle assembleDebug --no-daemon
+
+      - name: Upload Parent APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: parent-apk
+          path: parent/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Child APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: child-apk
+          path: child/app/build/outputs/apk/debug/*.apk
